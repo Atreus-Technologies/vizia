@@ -521,6 +521,32 @@ impl ApplicationRunner {
                 baseview::MouseEvent::CursorLeft => {
                     self.cx.emit_origin(WindowEvent::MouseLeave);
                 }
+                // Track the pointer while files are dragged over the window so hover
+                // (and `on_drag_*` handlers) follow it.
+                baseview::MouseEvent::DragEntered { position, modifiers, .. }
+                | baseview::MouseEvent::DragMoved { position, modifiers, .. } => {
+                    update_modifiers(modifiers);
+                    self.cx
+                        .emit_origin(WindowEvent::MouseMove(position.x as f32, position.y as f32));
+                }
+                // Same sequence as an in-app drag: set the drop data, move to the drop
+                // point, release; the release delivers `WindowEvent::Drop` to the view
+                // under the pointer (see `on_drop`).
+                baseview::MouseEvent::DragDropped {
+                    position,
+                    modifiers,
+                    data: baseview::DropData::Files(paths),
+                } => {
+                    update_modifiers(modifiers);
+                    for path in paths {
+                        self.cx.emit_origin(WindowEvent::Drop(DropData::File(path)));
+                        self.cx.emit_origin(WindowEvent::MouseMove(
+                            position.x as f32,
+                            position.y as f32,
+                        ));
+                        self.cx.emit_origin(WindowEvent::MouseUp(MouseButton::Left));
+                    }
+                }
 
                 _ => {}
             },
