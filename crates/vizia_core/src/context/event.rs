@@ -721,6 +721,11 @@ impl<'a> EventContext<'a> {
         *self.drop_data = Some(data.into())
     }
 
+    /// Clears the drop data, e.g. when an external drag leaves the window.
+    pub fn clear_drop_data(&mut self) {
+        *self.drop_data = None;
+    }
+
     /// Get the contents of the system clipboard.
     ///
     /// This may fail for a variety of backend-specific reasons.
