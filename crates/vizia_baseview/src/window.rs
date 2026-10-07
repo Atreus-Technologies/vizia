@@ -1,7 +1,8 @@
 use crate::application::ApplicationRunner;
 use baseview::gl::GlConfig;
 use baseview::{
-    Event, EventStatus, Window, WindowHandle, WindowHandler, WindowOpenOptions, WindowScalePolicy,
+    DropData, DropEffect, Event, EventStatus, MouseEvent, Window, WindowHandle, WindowHandler,
+    WindowOpenOptions, WindowScalePolicy,
 };
 use gl::types::GLint;
 use gl_rs as gl;
@@ -272,8 +273,18 @@ impl WindowHandler for ViziaWindow {
         // does not forward the platform event further — otherwise the host
         // (e.g. a DAW) also processes the same keystroke, producing double
         // handling and a system beep on macOS.
-        let captured = matches!(event, Event::Keyboard(_))
-            && self.application.focused_element() == Some("textbox");
+        let status = match &event {
+            Event::Keyboard(_) if self.application.focused_element() == Some("textbox") => {
+                EventStatus::Captured
+            }
+            // Accept file drags, otherwise the platform refuses the drop.
+            Event::Mouse(
+                MouseEvent::DragEntered { data: DropData::Files(_), .. }
+                | MouseEvent::DragMoved { data: DropData::Files(_), .. }
+                | MouseEvent::DragDropped { data: DropData::Files(_), .. },
+            ) => EventStatus::AcceptDrop(DropEffect::Copy),
+            _ => EventStatus::Ignored,
+        };
 
         self.application.handle_event(event, &mut should_quit);
 
@@ -283,7 +294,7 @@ impl WindowHandler for ViziaWindow {
             window.close();
         }
 
-        if captured { EventStatus::Captured } else { EventStatus::Ignored }
+        status
     }
 }
 
