@@ -1,4 +1,4 @@
-use accesskit::{Node, NodeId, Rect, TextDirection, TextSelection};
+use accesskit::{Node, NodeId, Rect, TextDirection, TextSelection, Toggled};
 use hashbrown::HashMap;
 
 use crate::{cache::CachedData, prelude::*, text::TextContext};
@@ -23,6 +23,11 @@ impl AccessContext<'_> {
     pub fn resolve_entity_identifier(&self, identity: &str) -> Option<Entity> {
         self.entity_identifiers.get(identity).copied()
     }
+
+    /// Returns the window's scale factor.
+    pub fn scale_factor(&self) -> f32 {
+        self.style.scale_factor()
+    }
 }
 
 /// Wrapper around an accesskit node builder, a node id, and a list of children to be added to the node.
@@ -45,7 +50,7 @@ impl AccessNode {
     }
 
     /// Returns the accesskit id of the access node.
-    pub(crate) fn node_id(&self) -> NodeId {
+    pub fn node_id(&self) -> NodeId {
         self.node_id
     }
 
@@ -77,6 +82,16 @@ impl AccessNode {
             x1: bounds.right() as f64,
             y1: bounds.bottom() as f64,
         });
+    }
+
+    /// Sets the label of the node.
+    pub fn set_label(&mut self, label: impl Into<Box<str>>) {
+        self.node_builder.set_label(label);
+    }
+
+    /// Sets whether the node is toggled on.
+    pub fn set_toggled(&mut self, on: bool) {
+        self.node_builder.set_toggled(if on { Toggled::True } else { Toggled::False });
     }
 
     /// Sets the value of a node.
